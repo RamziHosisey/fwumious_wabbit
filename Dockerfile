@@ -39,7 +39,7 @@ RUN if [ "$VW_COMPILE" = "true" ]; then \
      cmake .. &&\
      make vw_cli_bin -j $(nproc) ; \
  else \
-     echo "skip vw compile step " \
+     echo "skip vw compile step "; \
 fi
 
 # Get rust ecosystem operating
