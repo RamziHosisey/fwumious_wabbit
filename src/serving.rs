@@ -56,9 +56,9 @@ pub enum ConnectionEnd {
 
 impl WorkerThread {
     pub fn new(
-        id: u32, 
-        re_fixed: BoxedRegressorTrait, 
-        fbt: feature_buffer::FeatureBufferTranslator, 
+        id: u32,
+        re_fixed: BoxedRegressorTrait,
+        fbt: feature_buffer::FeatureBufferTranslator,
         pa: parser::VowpalParser,
         receiver: Arc<Mutex<mpsc::Receiver<net::TcpStream>>>,
     ) -> Result<thread::JoinHandle<u32>, Box<dyn Error>> {
@@ -75,7 +75,7 @@ impl WorkerThread {
         Ok(thread)
     }
 
-    pub fn handle_connection(&mut self, 
+    pub fn handle_connection(&mut self,
                              reader: &mut (impl io::BufRead + IsEmpty),
                              writer: &mut impl io::Write,
                              ) -> ConnectionEnd
@@ -123,7 +123,7 @@ impl WorkerThread {
                                     };
                                     return ConnectionEnd::StreamWriteError;
                                 }
-                            }                   
+                            }
                         } else
                         {
                             let p_res = format!("ERR: {}\n", e.to_string());
@@ -149,7 +149,7 @@ impl WorkerThread {
             i += 1;
         }
     }
-    
+
     pub fn start(&mut self, receiver: Arc<Mutex<mpsc::Receiver<net::TcpStream>>>) -> () {
         // Simple endless serving loop: receive new connection and serve it
         // when handle_connection exits, the connection is dropped
@@ -160,7 +160,7 @@ impl WorkerThread {
             self.handle_connection(&mut reader, &mut writer);
         }
     }
-    
+
 }
 
 
@@ -266,7 +266,7 @@ B,featureB
 C,featureC
 "#;
         let vw = vwmap::VwNamespaceMap::new(vw_map_string).unwrap();
-        let mi = model_instance::ModelInstance::new_empty().unwrap();        
+        let mi = model_instance::ModelInstance::new_empty().unwrap();
         let mut re = regressor::Regressor::new::<optimizer::OptimizerAdagradLUT>(&mi);
         let re_fixed = BoxedRegressorTrait::new(Box::new(re.immutable_regressor(&mi).unwrap()));
         let fbt = feature_buffer::FeatureBufferTranslator::new(&mi);
@@ -302,10 +302,10 @@ C,featureC
             assert_eq!(ConnectionEnd::ParseError, newt.handle_connection(&mut reader, &mut writer));
             let x = mocked_stream.pop_bytes_written();
             assert_eq!(&x[..] == &b"ERR: Cannot parse an example\n"[..], true);
-        } 
-        
+        }
+
         // Non Working stream test
-        
+
         {
             let mut mocked_stream_ok = SharedMockStream::new();
             let mocked_stream_error = FailingMockStream::new(ErrorKind::Other, "Failing", 3);
@@ -321,22 +321,19 @@ C,featureC
 
 
         }
-    //    println!("Return value {:?}", std::str::from_utf8(&x).unwrap());    
+    //    println!("Return value {:?}", std::str::from_utf8(&x).unwrap());
 
 
 
-                                 
+
     }
 
     fn lr_and_ffm_vec(v1:Vec<feature_buffer::HashAndValue>, v2:Vec<feature_buffer::HashAndValueAndSeq>, ffm_fields_count:u32) -> feature_buffer::FeatureBuffer {
-        feature_buffer::FeatureBuffer {
-                    label: 0.0,
-                    example_importance: 1.0,
-                    example_number: 0,
-                    lr_buffer: v1,
-                    ffm_buffer: v2,
-                    ffm_fields_count: ffm_fields_count,
-        }
+        let mut fb = feature_buffer::FeatureBuffer::new();
+        fb.lr_buffer = v1;
+        fb.ffm_buffer = v2;
+        fb.ffm_fields_count = ffm_fields_count;
+        fb
     }
 
 
@@ -348,7 +345,7 @@ B,featureB
 C,featureC
 "#;
         let vw = vwmap::VwNamespaceMap::new(vw_map_string).unwrap();
-        let mut mi = model_instance::ModelInstance::new_empty().unwrap();        
+        let mut mi = model_instance::ModelInstance::new_empty().unwrap();
         mi.learning_rate = 0.1;
         mi.power_t = 0.0;
         mi.bit_precision = 18;
@@ -356,7 +353,7 @@ C,featureC
         mi.ffm_bit_precision = 18;
         mi.ffm_power_t = 0.0;
         mi.ffm_learning_rate = 0.1;
-        mi.ffm_fields = vec![vec![],vec![]]; 
+        mi.ffm_fields = vec![vec![],vec![]];
         mi.optimizer = model_instance::Optimizer::Adagrad;
         mi.fastmath = false;
         let mut re_1 = regressor::Regressor::new::<optimizer::OptimizerAdagradLUT>(&mi);
@@ -407,7 +404,7 @@ C,featureC
             let x = mocked_stream.pop_bytes_written();
             assert_eq!(str::from_utf8(&x), str::from_utf8(b""));
 
-        } 
+        }
 
 
 

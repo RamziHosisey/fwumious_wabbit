@@ -1,4 +1,4 @@
-use clap::{App, Arg,  AppSettings};
+ use clap::{App, Arg,  AppSettings};
 use crate::version;
 
 pub fn parse<'a>() -> clap::ArgMatches<'a> {
@@ -30,7 +30,7 @@ pub fn parse<'a>() -> clap::ArgMatches<'a> {
                     .arg(Arg::with_name("save_resume")
                      .long("save_resume")
                      .help("save extra state so learning can be resumed later with new data")
-						 .takes_value(false))
+                     .takes_value(false))
                     .arg(Arg::with_name("interactions")
                      .long("interactions")
                      .value_name("namespace_char,namespace_char[:value]")
@@ -49,6 +49,11 @@ pub fn parse<'a>() -> clap::ArgMatches<'a> {
                      .help("Adds single features")
                      .multiple(true)
                      .takes_value(true))
+                   .arg(Arg::with_name("audit")
+                     .long("audit")
+                     .help("Audit mode - verbosely output data useful for model insights")
+                     .takes_value(false))
+
 
                     .arg(Arg::with_name("learning_rate")
                      .short("l")
@@ -118,7 +123,7 @@ pub fn parse<'a>() -> clap::ArgMatches<'a> {
                      .value_name("all")
                      .help("We do not support treating strings as already hashed numbers, so you have to use --hash all")
                      .takes_value(true))
-                     
+
                     // Regressor
                     .arg(Arg::with_name("final_regressor")
                      .short("f")
@@ -211,7 +216,7 @@ pub fn parse<'a>() -> clap::ArgMatches<'a> {
                      .takes_value(true))
 
 
-                     
+
 
                      // Daemon parameterts
                     .arg(Arg::with_name("daemon")

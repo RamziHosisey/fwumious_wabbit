@@ -1,5 +1,7 @@
 
 use std::marker::PhantomData;
+use serde_json::{Value, Map};
+use crate::block_helpers::f32_to_json;
 
 
 pub trait OptimizerTrait : std::clone::Clone {
@@ -9,26 +11,27 @@ pub trait OptimizerTrait : std::clone::Clone {
     unsafe fn calculate_update(&self, gradient: f32, data: &mut Self::PerWeightStore) -> f32;
     fn initial_data(&self) -> Self::PerWeightStore;
     fn get_name() -> &'static str;
+    fn get_audit_data(&self, data: &Self::PerWeightStore) -> Value;
 }
 
 /******************* SGD **************************/
 // This is non-adaptive fixed learning rate SGD, which is exactly the same as Vowpal when --power_t is 0.0
 #[derive(Clone)]
 pub struct OptimizerSGD {
-    learning_rate: f32,    
+    learning_rate: f32,
 }
 
 impl OptimizerTrait for OptimizerSGD {
     type PerWeightStore = PhantomData<u32>;
-    
+
     fn get_name() -> &'static str {
         "SGD"
     }
-    
+
     fn new() -> Self {
         OptimizerSGD{learning_rate: 0.0}
-    } 
-    
+    }
+
     fn init(&mut self, learning_rate: f32, _power_t: f32, _initial_acc_gradient: f32) {
         self.learning_rate = learning_rate;
     }
@@ -41,6 +44,11 @@ impl OptimizerTrait for OptimizerSGD {
     fn initial_data(&self) -> Self::PerWeightStore {
         std::marker::PhantomData{}
     }
+
+    fn get_audit_data(&self, data: &Self::PerWeightStore) -> Value {
+        Value::Null
+    }
+
 }
 
 
@@ -51,7 +59,7 @@ impl OptimizerTrait for OptimizerSGD {
 /* implementation is mainly used as a reference                              */
 #[derive(Clone)]
 pub struct OptimizerAdagradFlex {
-    learning_rate: f32,   
+    learning_rate: f32,
     minus_power_t: f32,
     initial_acc_gradient: f32,
 }
@@ -64,7 +72,7 @@ impl OptimizerTrait for OptimizerAdagradFlex {
 
     fn new() -> Self {
         OptimizerAdagradFlex{learning_rate: 0.0, minus_power_t: 0.0, initial_acc_gradient: 0.0}
-    } 
+    }
 
     fn init(&mut self, learning_rate: f32, power_t: f32, initial_acc_gradient: f32) {
         self.learning_rate = learning_rate;
@@ -79,14 +87,16 @@ impl OptimizerTrait for OptimizerAdagradFlex {
         let new_accumulated_gradient_squared = accumulated_gradient_squared + gradient_squared;
         *data = new_accumulated_gradient_squared;
         let update =  gradient * self.learning_rate * (new_accumulated_gradient_squared).powf(self.minus_power_t);
-
         return update;
     }
-    
+
     fn initial_data(&self) -> Self::PerWeightStore {
         self.initial_acc_gradient
     }
-    
+    fn get_audit_data(&self, data: &Self::PerWeightStore) -> Value {
+        f32_to_json(*data)
+    }
+
 }
 
 
@@ -101,7 +111,7 @@ pub const FASTMATH_LR_LUT_SIZE:usize = 1 <<  FASTMATH_LR_LUT_BITS;
 
 #[derive(Clone, Copy)]
 pub struct OptimizerAdagradLUT {
-   pub fastmath_lr_lut: [f32; FASTMATH_LR_LUT_SIZE], 
+   pub fastmath_lr_lut: [f32; FASTMATH_LR_LUT_SIZE],
 }
 
 impl OptimizerTrait for OptimizerAdagradLUT {
@@ -112,8 +122,8 @@ impl OptimizerTrait for OptimizerAdagradLUT {
 
     fn new() -> Self {
         OptimizerAdagradLUT{fastmath_lr_lut: [0.0;FASTMATH_LR_LUT_SIZE]}
-    } 
-    
+    }
+
     fn init(&mut self, learning_rate: f32, power_t: f32, initial_acc_gradient: f32) {
         println!("Calculating look-up tables for Adagrad learning rate calculation");
         let minus_power_t = -power_t;
@@ -130,11 +140,11 @@ impl OptimizerTrait for OptimizerAdagradLUT {
 //                println!("x: {} {} {} {}", x, float_x, val, initial_acc_gradient);
                 val = learning_rate;
             }
-            
+
             self.fastmath_lr_lut[x] = val;
         }
     }
-    
+
     #[inline(always)]
     unsafe fn calculate_update(&self, gradient: f32, data: &mut Self::PerWeightStore) -> f32 {
         let accumulated_gradient_squared = *data;
@@ -150,6 +160,10 @@ impl OptimizerTrait for OptimizerAdagradLUT {
     fn initial_data(&self) -> Self::PerWeightStore {
         // We took it into account when calcualting lookup table, so look at init()
         0.0
+    }
+
+    fn get_audit_data(&self, data: &Self::PerWeightStore) -> Value {
+        f32_to_json(*data)
     }
 
 }
@@ -188,7 +202,7 @@ mod tests {
             let p = l.calculate_update(0.1, &mut acc);
             assert_eq!(p, 0.09464361);
             assert_eq!(acc, 0.1*0.1);
-            
+
             acc = 0.0;
             let p = l.calculate_update(0.0, &mut acc);
             // Here we check that we get NaN back - this is not good, but it's correct
@@ -219,12 +233,12 @@ mod tests {
             // Here we check that we don't get Inf back
             assert_eq!(p, 0.0);
             assert_eq!(acc, 0.0);
-            
+
         }
     }
 
 
-    
+
     #[test]
     fn test_adagradlut_comparison() {
         // Here we test that our implementation of LUT has small enough relative error
@@ -251,7 +265,7 @@ mod tests {
                     }
                     //println!("Relative error {}", relative_error);
                     //println!("Err: {} - p_flex: {}, p_lut: {}, gradient: {}, accumulation {}", error, p_flex, p_lut, *gradient, *accumulation);
-                    assert!(relative_error < 0.05); 
+                    assert!(relative_error < 0.05);
                 }
             }
         }
