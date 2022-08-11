@@ -32,17 +32,15 @@ RUN make
 RUN make install
 
 # Compile vw - needed for benchmark
-#RUN if [ "$VW_COMPILE" = "true" ] ;  \
-#    then git clone https://github.com/VowpalWabbit/vowpal_wabbit.git && \
-#    WORKDIR /vowpal_wabbit/vowpalwabbit && \
-#    mkdir build && \
-#    cd build && \
-#    cmake .. &&\
-#    make vw_cli_bin -j $(nproc) ; \
-#else \
-#    echo "skip vw compile step " \
-#fi
-
+RUN if [ "$VW_COMPILE" = "true" ]; then \
+     git clone https://github.com/VowpalWabbit/vowpal_wabbit.git && \
+     mkdir build && \
+     cd build && \
+     cmake .. &&\
+     make vw_cli_bin -j $(nproc) ; \
+ else \
+     echo "skip vw compile step " \
+fi
 
 # Get rust ecosystem operating
 WORKDIR /
