@@ -1,5 +1,7 @@
 
 use std::marker::PhantomData;
+use serde_json::{Value, Map};
+use crate::block_helpers::f32_to_json;
 
 
 pub trait OptimizerTrait : std::clone::Clone {
@@ -9,6 +11,7 @@ pub trait OptimizerTrait : std::clone::Clone {
     unsafe fn calculate_update(&self, gradient: f32, data: &mut Self::PerWeightStore) -> f32;
     fn initial_data(&self) -> Self::PerWeightStore;
     fn get_name() -> &'static str;
+    fn get_audit_data(&self, data: &Self::PerWeightStore) -> Value;
 }
 
 /******************* SGD **************************/
@@ -41,6 +44,11 @@ impl OptimizerTrait for OptimizerSGD {
     fn initial_data(&self) -> Self::PerWeightStore {
         std::marker::PhantomData{}
     }
+    
+    fn get_audit_data(&self, data: &Self::PerWeightStore) -> Value {
+        Value::Null
+    }
+    
 }
 
 
@@ -79,12 +87,14 @@ impl OptimizerTrait for OptimizerAdagradFlex {
         let new_accumulated_gradient_squared = accumulated_gradient_squared + gradient_squared;
         *data = new_accumulated_gradient_squared;
         let update =  gradient * self.learning_rate * (new_accumulated_gradient_squared).powf(self.minus_power_t);
-
         return update;
     }
     
     fn initial_data(&self) -> Self::PerWeightStore {
         self.initial_acc_gradient
+    }
+    fn get_audit_data(&self, data: &Self::PerWeightStore) -> Value {
+        f32_to_json(*data)
     }
     
 }
@@ -150,6 +160,10 @@ impl OptimizerTrait for OptimizerAdagradLUT {
     fn initial_data(&self) -> Self::PerWeightStore {
         // We took it into account when calcualting lookup table, so look at init()
         0.0
+    }
+
+    fn get_audit_data(&self, data: &Self::PerWeightStore) -> Value {
+        f32_to_json(*data)
     }
 
 }
