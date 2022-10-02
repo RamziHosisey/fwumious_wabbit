@@ -14,12 +14,10 @@ jobs:
     runs-on: ubuntu-18.04
 
     steps:
+    - uses: actions/checkout@v3
     - name: Extract branch name
       shell: bash
       run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
       id: extract_branch
-    - uses: actions/checkout@v3
-    - name: Branch name
-      run: FW_BRANCH=steps.extract_branch.outputs.branch
     - name: Build the Docker image
-      run: docker build --build-arg FW_REPO_URL=https://github.com/$GITHUB_REPOSITORY.git --build-arg FW_BRANCH=${GITHUB_HEAD_REF##*/} . --file Dockerfile --tag fw-bench:$(date +%s)
+      run: docker build --build-arg FW_REPO_URL=https://github.com/$GITHUB_REPOSITORY.git --build-arg FW_BRANCH=${steps.extract_branch.outputs.branch} . --file Dockerfile --tag fw-bench:$(date +%s)
