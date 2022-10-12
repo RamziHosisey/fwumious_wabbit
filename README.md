@@ -1,6 +1,6 @@
 Fwumious Wabbit is
 - a very fast machine learning tool
-- built with Rust
+- built with Rust .
 - inspired by and partially compatible with Vowpal Wabbit (much love! read more about compatibility [here](COMPATIBILITY.md))
 - currently supports logistic regression and field-aware factorization machines
 
